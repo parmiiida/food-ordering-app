@@ -45,9 +45,14 @@ export default Sentry.wrap(function RootLayout() {
     fetchAuthenticatedUser();
   }, []);
 
+  // Ensure FeedbackWidget is shown after Sentry.wrap and after mount
+  useEffect(() => {
+    Sentry.showFeedbackWidget();
+  }, []);
+
   if (!fontsLoaded || isLoading) return null;
 
   return <Stack screenOptions={{ headerShown: false }} />;
 });
 
-Sentry.showFeedbackWidget();
+
