@@ -1,4 +1,5 @@
-import { CreateUserPrams, SignInParams } from "@/type";
+import dummyData from "@/lib/data";
+import { CreateUserPrams, GetMenuParams, SignInParams } from "@/type";
 import {
   Account,
   Avatars,
@@ -26,8 +27,10 @@ export const client = new Client();
 
 client
   .setEndpoint(appwriteConfig.endpoint)
-  .setProject(appwriteConfig.projectId)
-  .setPlatform(appwriteConfig.platform);
+  .setProject(appwriteConfig.projectId);
+// .setPlatform(appwriteConfig.platform)
+console.log("Endpoint:", appwriteConfig.endpoint);
+console.log("Project ID:", appwriteConfig.projectId);
 
 export const account = new Account(client);
 export const databases = new Databases(client);
@@ -43,8 +46,6 @@ export const createUser = async ({
     const newAccount = await account.create(ID.unique(), email, password, name);
     if (!newAccount) throw Error;
 
-    await signIn({ email, password });
-
     const avatarUrl = avatars.getInitialsURL(name);
 
     return await databases.createDocument(
@@ -54,6 +55,7 @@ export const createUser = async ({
       { email, name, accountId: newAccount.$id, avatar: avatarUrl }
     );
   } catch (e) {
+    console.error("Create user error:", e);
     throw new Error(e as string);
   }
 };
@@ -61,6 +63,7 @@ export const createUser = async ({
 export const signIn = async ({ email, password }: SignInParams) => {
   try {
     const session = await account.createEmailPasswordSession(email, password);
+    console.log("Signing in with:", email);
   } catch (e) {
     throw new Error(e as string);
   }
@@ -85,35 +88,36 @@ export const getCurrentUser = async () => {
     throw new Error(e as string);
   }
 };
+export const getMenu = async ({ category, query }: GetMenuParams) => {
+  // Use local dummy data instead of Appwrite for menus
+  const normalizedCategory = (category || "").trim();
+  const normalizedQuery = (query || "").trim().toLowerCase();
 
-// export const getMenu = async ({ category, query }: GetMenuParams) => {
-//   try {
-//     const queries: string[] = [];
+  const filtered = dummyData.menu.filter((item) => {
+    const byCategory =
+      !normalizedCategory || normalizedCategory === "all"
+        ? true
+        : item.category_name === normalizedCategory;
+    const byQuery = !normalizedQuery
+      ? true
+      : item.name.toLowerCase().includes(normalizedQuery);
+    return byCategory && byQuery;
+  });
 
-//     if (category) queries.push(Query.equal("categories", category));
-//     if (query) queries.push(Query.search("name", query));
+  // Attach minimal ids for UI keying; keep other fields as-is
+  return filtered.map((item, index) => ({
+    $id: `${item.name}-${index}`,
+    ...item,
+  }));
+};
 
-//     const menus = await databases.listDocuments(
-//       appwriteConfig.databaseId,
-//       appwriteConfig.menuCollectionId,
-//       queries
-//     );
-
-//     return menus.documents;
-//   } catch (e) {
-//     throw new Error(e as string);
-//   }
-// };
-
-// export const getCategories = async () => {
-//   try {
-//     const categories = await databases.listDocuments(
-//       appwriteConfig.databaseId,
-//       appwriteConfig.categoriesCollectionId
-//     );
-
-//     return categories.documents;
-//   } catch (e) {
-//     throw new Error(e as string);
-//   }
-// };
+export const getCategories = async (
+  _params?: Record<string, string | number>
+) => {
+  // Use local dummy data instead of Appwrite for categories
+  return dummyData.categories.map((c) => ({
+    $id: c.name,
+    name: c.name,
+    description: c.description,
+  }));
+};
